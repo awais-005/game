@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic Tac Toe</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="/public/favicon.png" image="/x-icon">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+<script type="module" src="script.js"></script>
+<body>
+    <div class="sidebar">
+        <h3>Menu</h3>
+        <button class="sidebtn" value="Online">Play Online</button>
+        <button class="sidebtn" value="Login">Log in / Sign up</button>
+    </div>
+    <div class="playOnline">
+        <h3>Play Online</h3>
+        <button class="dismissBtn"><i class="fa-solid fa-xmark"></i></button>
+        <input type="text" placeholder="Enter room ID to join..." class="roomInput">
+        <button class="joinBtn"><i class="fa-solid fa-arrow-right-to-bracket"></i></button>
+        <button class="createBtn">Create new room<div class="createIcon"><i class="fa-solid fa-house"></i></div></button>
+        <div class="impMsg">
+            <pre id="p1"><i class="fa-solid fa-circle-exclamation"></i> Online Play / Room
+   functionality is under
+   development.</pre>
+        <p>Thanks for your corporation!</p>
+        </div>
+    </div>
+    <div class="joinCreateResponse">
+        <button class="dismissMsg"><i class="fa-solid fa-xmark"></i></button>
+        <div class="resText">Your msg will appear over here. and this just dummy text will be replaced later.</div>
+        <button class="play">Start</button>
+    </div>
+    <div class="mainBody">
+        <div id="nav">
+            <div id="currentMode">Against Bot</div>
+            <div id="menuCon"><i class="fa-solid fa-bars" id="menu"></i></div>
+        </div>
+        <div id="info">
+            <div class="con">
+                <div class="resfield" id="won">Won</div>
+                <div class="nres" id="nwon">0</div>
+            </div>
+            <div class="con">
+                <div class="resfield" id="lost">Lost</div>
+                <div class="nres" id="nlost">0</div>
+            </div>
+            <div class="con">
+                <div class="resfield" id="drawn">Drawn</div>
+                <div class="nres" id="ndrawn">0</div>
+            </div>
+            <div id="mode">Expert Mode
+                <button id="hard">Off</button>
+            </div>
+            <div id="status">
+                <div id="toss">
+                    <p>Click<br>to<br>Toss!</p>
+                    <div class="threeDot"><i class="ri-more-2-fill"></i></div>
+                </div>
+                <div class="autoToss">
+                    <div class="back"><i class="ri-arrow-left-s-line"></i></div>
+                    <p>Auto Toss</p>
+                    <div class="outer">
+                        <p id="state">Off</p>
+                        <div class="inner"></div>
+                    </div>
+                </div>
+                <div class="faces">Heads</div>
+                <div class="faces">Tails</div>
+                <div id="update">Memes</div>
+            </div>
+        </div>
+        <div class="main">
+            <div class="gameover">
+                <p id="result">Match is drawn!</p>
+                <button id="rematch">Play Again!</button>
+            </div>
+            <button class="box" id="box1">1</button>
+            <button class="box" id="box2">2</button>
+            <button class="box" id="box3">3</button>
+            <button class="box" id="box4">4</button>
+            <button class="box" id="box5">5</button>
+            <button class="box" id="box6">6</button>
+            <button class="box" id="box7">7</button>
+            <button class="box" id="box8">8</button>
+            <button class="box" id="box9">9</button>
+        </div>
+    </div>
+</body>
+</html>
