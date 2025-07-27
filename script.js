@@ -337,7 +337,7 @@ export async function startPolling() {
 board.addEventListener('click', async function (details) {
     if (details.target.className != 'box' || details.target.textContent == '') {
         console.log("ignored!")
-        return ; // Ensure we only handle clicks on the boxes those aren't clicked yet
+        return; // Ensure we only handle clicks on the boxes those aren't clicked yet
     }
     if (gameMode === "offline") {
         if (!offlineEvent(details.target)) {
@@ -454,7 +454,7 @@ expert.addEventListener('click', function () {
 
 function offlineRematch() {
     document.querySelector('.gameover').style.transform = "translate(-50%, -50%) scale(0)";
-    setTimeout(() => {document.querySelector('.gameover').style.display = "none"}, 200);
+    setTimeout(() => { document.querySelector('.gameover').style.display = "none" }, 200);
     tossWinner = 0; // Reset toss winner
     if (!toggled) {
         showResult.innerText = 'Updates';
@@ -468,7 +468,7 @@ function offlineRematch() {
         tossfunc('', toggled); // Reset toss function with toggled state
     }
 }
-
+let isDone = false;
 async function rematchPolling() {
     let checkForOpponent = setInterval(async () => {
         let response = await getRoomDetails();
@@ -478,41 +478,57 @@ async function rematchPolling() {
                 await reqServerToSetTurn(first, 0);
             }
             let e = await getRoomDetails(); // just to check current turn on server;
-            if( e.roomDetails.currentTurn === playerType) {
+            if (!e.roomDetails.currentTurn) {
+                clearInterval(checkForOpponent);
+                console.log("recalling:", e);
+                rematchPolling();
+
+            }
+            else if (e.roomDetails.currentTurn === playerType) {
                 showResult.innerText = "You go first!!!";
-            } 
-            else { 
+            }
+            else {
                 showResult.innerText = "Wait for @user";
                 startPolling();
             }
-            document.querySelector('.gameover').style.transform = "translate(-50%, -50%) scale(0)";
-            setTimeout(() => {
-                document.querySelector('.gameover').style.display = "none";
-                document.getElementById('result').innerText = "Match is Drawn!";
-                document.getElementById("rematch").style.display = "block";
-                document.getElementById("exit").style.display = "block";
-            }, 200);
+            if (!isDone) {
+                isDone = true;
+                document.querySelector('.gameover').style.transform = "translate(-50%, -50%) scale(0)";
+                setTimeout(() => {
+                    document.querySelector('.gameover').style.display = "none";
+                    document.getElementById('result').innerText = "Match is Drawn!";
+                    document.getElementById("rematch").style.display = "block";
+                    document.getElementById("exit").style.display = "block";
+                }, 200);
+            }
             clearInterval(checkForOpponent);
+        } else if (response.roomDetails.status === "left") {
+            document.getElementById('result').innerText = " Opponent has left!";
+            document.getElementById("exit").style.display = "block";
         }
     }, 300);
 }
 
 async function onlineRematch() {
-    document.getElementById("exit").style.display = "none";
     document.getElementById("rematch").style.display = "none";
+    let res = await getRoomDetails();
+    if(res.roomDetails.status === "left") {
+        document.getElementById('result').innerText = " Opponent has left!";
+        return;
+    } else {
+        document.getElementById("exit").style.display = "none";
+    }
     let response = await fetch(`http://127.0.0.1:8000/addplayer/${roomID}/${player_ID}`);
     if (response.ok) {
         document.getElementById("result").innerText = "Waiting for opponent!";
+        isDone = false;
         await rematchPolling();
     } else {
         document.querySelector(".joinCreateResponse").style.display = "flex";
         document.querySelector(".joinCreateResponse").style.transform = 'scale(1) translate(-50%, 50%)';
         document.querySelector(".resText").innerText = "Something went wrong: " + response.detail;
-        
+
     }
-    // player1 one player2 khali kr
-    // screen pa button dikha play again and Exit
-    // ak player Exit kra to dosry na bata dy k unna exit mar diya
 }
 
 rematch.addEventListener('click', async function () {
@@ -583,7 +599,7 @@ create.addEventListener('click', function () {
 
 const exitBtn = document.getElementById("exit");
 exitBtn.addEventListener('click', async () => {
-    let rp = await fetch(`http://127.0.0.1:8000/leave/${roomID}/${player_ID}`);
+    let rp = await fetch(`http://127.0.0.1:8000/leave/${roomID}`);
     if (rp.ok) {
         location.reload();
     } else {
