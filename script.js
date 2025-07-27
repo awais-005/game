@@ -1,5 +1,5 @@
 import { brain_of_comp } from "./skills.js"
-import { joinRoom, createRoom, startMatch, playerType, roomID, reqServerToSetTurn, getRoomDetails } from "./serverReqs.js"
+import { joinRoom, createRoom, startMatch, playerType, reqServerToSetTurn, getRoomDetails, roomID, player_ID } from "./serverReqs.js"
 let boardState = ['', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ']
 let turn = 0;
 let wins = 0, losts = 0, draws = 0;
@@ -40,13 +40,11 @@ function resetBoxes() {
     let boxes = document.querySelectorAll('.box')
     let i = 1;
     for (let box of boxes) {
-        if (box.textContent === '') {
-            box.disabled = false;
-            box.innerHTML = '';
-            box.textContent = `${i}`;
-            box.style.backgroundColor = '#3E5F44';
-            boardState[i] = ' ';
-        }
+        box.disabled = false;
+        box.innerHTML = '';
+        box.textContent = `${i}`;
+        box.style.backgroundColor = '#3E5F44';
+        boardState[i] = ' ';
         i++;
     }
 }
@@ -116,7 +114,7 @@ const board = document.querySelector('.main'); // Board container
 const rematch = document.getElementById("rematch") // play again button after match ends
 
 function offlineEvent(box) {
-    if (showResult.innerText === 'Memes') {
+    if (showResult.innerText === 'Updates') {
         toss.style.transform = 'scale(1.2)';
         setTimeout(() => { toss.style.transform = 'scale(1)' }, 300);
         toss.style.fontSize = "1rem";
@@ -126,10 +124,6 @@ function offlineEvent(box) {
         return false; // If it's the computer's turn, ignore player clicks
     }
 
-    if (box.className != 'box' || box.textContent == '') {
-        console.log("ignored!")
-        return false; // Ensure we only handle clicks on the boxes those aren't clicked yet
-    }
     turn++;
     tossWinner++;
 
@@ -303,7 +297,6 @@ tossBlock.addEventListener('click', function (details) {
     tossfunc(choice);
 });
 
-// jo toss hary ga wahan auto call, baqi board k event listener ma hi sai aa. 
 export async function startPolling() {
     let pollingInterval = setInterval(async () => {
         let resp = await getRoomDetails();
@@ -319,13 +312,21 @@ export async function startPolling() {
                 pass = "creator";
             }
             if (checkResult(pass)) {
-                showResult.innerText = "GameOver";
+                let rp = await fetch(`http://127.0.0.1:8000/resetroom/${roomID}`)
+                if (rp.ok) {
+                    showResult.innerText = "GameOver";
+                } else {
+                    showResult.innerText = "Failed to reset";
+                }
+                // Stop polling because it is your turn.
                 clearInterval(pollingInterval);
-                resetBoxes();
+                return;
+            } else {
+                showResult.innerText = "Now it's your turn";
+                clearInterval(pollingInterval);
+                // Stop polling because it is your turn.
                 return;
             }
-            showResult.innerText = "Now it's your turn";
-            clearInterval(pollingInterval);
         } else {
             showResult.innerText = "Wait for @user";
         }
@@ -334,6 +335,10 @@ export async function startPolling() {
 
 // Fetching move from board.
 board.addEventListener('click', async function (details) {
+    if (details.target.className != 'box' || details.target.textContent == '') {
+        console.log("ignored!")
+        return ; // Ensure we only handle clicks on the boxes those aren't clicked yet
+    }
     if (gameMode === "offline") {
         if (!offlineEvent(details.target)) {
             return;
@@ -343,14 +348,17 @@ board.addEventListener('click', async function (details) {
         let curr_turn = undefined; // player turn on server.
         let movesList = [];
         let resp = await getRoomDetails();
-        if (resp.roomDetails.currentTurn.length >= 0) {
+        if (resp.roomDetails.currentMove.length >= 0) { // this condition would only work when response will be ok
             curr_turn = resp.roomDetails.currentTurn;
             movesList = resp.roomDetails.currentMove;
             turn = movesList.length;
         }
         else {
+            document.querySelector(".resText").innerText = "Something went wrong: " + resp;
             document.querySelector(".joinCreateResponse").style.display = "flex";
-            document.querySelector(".resText").innerText = resp;
+            requestAnimationFrame(() => {
+                document.querySelector(".joinCreateResponse").style.transform = 'scale(1) translate(-50%, -50%)';
+            });
             return;
         }
         if (curr_turn !== playerType) {
@@ -375,7 +383,6 @@ board.addEventListener('click', async function (details) {
 
             if (checkResult(curr_turn)) {
                 showResult.innerText = "GameOver";
-                resetBoxes();
                 return;
             }
 
@@ -389,7 +396,7 @@ board.addEventListener('click', async function (details) {
 function startComputerTurn() {
     if (tossWinner % 2 === 0) {
         setTimeout(function () {
-            if (showResult.innerText === 'Memes') {
+            if (showResult.innerText === 'Updates') {
                 return;
             }
             turn++;
@@ -445,27 +452,77 @@ expert.addEventListener('click', function () {
     }
 });
 
-rematch.addEventListener('click', function () {
+function offlineRematch() {
     document.querySelector('.gameover').style.transform = "translate(-50%, -50%) scale(0)";
-    boardState = ['', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ']
-    turn = 0; // number of current turn
+    setTimeout(() => {document.querySelector('.gameover').style.display = "none"}, 200);
     tossWinner = 0; // Reset toss winner
     if (!toggled) {
-        showResult.innerText = 'Memes';
+        showResult.innerText = 'Updates';
         showResult.style.transform = "scale(0) translate(110%)";
         setTimeout(() => { showResult.style.display = "none" }, 300);
         toss.style.display = "flex";
         requestAnimationFrame(() => {
             toss.style.transform = "scale(1) translate(0%)";
         });
-    }
-    setTimeout(() => {
-        document.getElementById('result').innerText = "Match is Drawn!";
-    }, 300);
-    resetBoxes();
-    if (toggled) {
+    } else {
         tossfunc('', toggled); // Reset toss function with toggled state
     }
+}
+
+async function rematchPolling() {
+    let checkForOpponent = setInterval(async () => {
+        let response = await getRoomDetails();
+        if (response.roomDetails.status === "in progress") {
+            if (playerType === "creator") {
+                let first = Math.floor(Math.random() * 100) % 2 === 0 ? "creator" : "invited";
+                await reqServerToSetTurn(first, 0);
+            }
+            let e = await getRoomDetails(); // just to check current turn on server;
+            if( e.roomDetails.currentTurn === playerType) {
+                showResult.innerText = "You go first!!!";
+            } 
+            else { 
+                showResult.innerText = "Wait for @user";
+                startPolling();
+            }
+            document.querySelector('.gameover').style.transform = "translate(-50%, -50%) scale(0)";
+            setTimeout(() => {
+                document.querySelector('.gameover').style.display = "none";
+                document.getElementById('result').innerText = "Match is Drawn!";
+                document.getElementById("rematch").style.display = "block";
+                document.getElementById("exit").style.display = "block";
+            }, 200);
+            clearInterval(checkForOpponent);
+        }
+    }, 300);
+}
+
+async function onlineRematch() {
+    document.getElementById("exit").style.display = "none";
+    document.getElementById("rematch").style.display = "none";
+    let response = await fetch(`http://127.0.0.1:8000/addplayer/${roomID}/${player_ID}`);
+    if (response.ok) {
+        document.getElementById("result").innerText = "Waiting for opponent!";
+        await rematchPolling();
+    } else {
+        document.querySelector(".joinCreateResponse").style.display = "flex";
+        document.querySelector(".joinCreateResponse").style.transform = 'scale(1) translate(-50%, 50%)';
+        document.querySelector(".resText").innerText = "Something went wrong: " + response.detail;
+        
+    }
+    // player1 one player2 khali kr
+    // screen pa button dikha play again and Exit
+    // ak player Exit kra to dosry na bata dy k unna exit mar diya
+}
+
+rematch.addEventListener('click', async function () {
+    turn = 0; // number of current turn
+    if (gameMode === "offline") {
+        offlineRematch();
+    } else {
+        onlineRematch();
+    }
+    resetBoxes();
 });
 
 // online section
@@ -524,8 +581,18 @@ create.addEventListener('click', function () {
     createRoom();
 });
 
+const exitBtn = document.getElementById("exit");
+exitBtn.addEventListener('click', async () => {
+    let rp = await fetch(`http://127.0.0.1:8000/leave/${roomID}/${player_ID}`);
+    if (rp.ok) {
+        location.reload();
+    } else {
+        console.log(rp);
+    }
+});
 
-const startbtn = document.querySelector('.play');
+export const startbtn = document.querySelector('.play');
+startbtn.disabled = true;
 startbtn.addEventListener('click', async () => {
     await startMatch();
 });

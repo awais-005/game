@@ -1,4 +1,5 @@
-import { switchMode, latestMove, startPolling, expert } from "./script.js"
+import { switchMode, latestMove, startPolling, expert, startbtn } from "./script.js"
+import { randomMove } from "./skills.js";
 
 export const player_ID = Math.floor(Math.random() * 1000000000);
 export let playerType = undefined;
@@ -18,6 +19,8 @@ async function statusUpdate(waitForFriend) {
         let roomNewState = response.roomDetails.status;
         if (roomNewState === "in progress" && playerType === "creator") {
             resText.innerText = "Your friend has joined the room.";
+            startbtn.disabled = false;  
+            startbtn.innerText = "Start";
             clearInterval(waitForFriend);
             console.log("Stopped Calling StatusUpdate()");
         }
@@ -49,6 +52,17 @@ export function createRoom() {
     reqServerToCreateRoom();
 }
 
+function hideOfflineStuff() {
+    document.getElementById("toss").style.display = 'none';
+    update.style.display = 'flex';
+    update.style.transform = "scale(1) translate(0%)";
+    update.innerText = ""
+    expert.style.display = "none";
+    document.getElementById("mode").style.justifyContent = "center";
+    document.getElementById("mode").innerText = "vs @user";
+    document.getElementById("exit").style.display = "block";
+}
+
 function setupForOnline() {
     const playOnline = document.querySelector('.playOnline');
     playOnline.style.transform = 'translate(200%, -90%) scale(0)';
@@ -59,14 +73,6 @@ function setupForOnline() {
     requestAnimationFrame(() => {
         document.querySelector(".joinCreateResponse").style.transform = 'translate(-50%, -50%) scale(1)';
     });
-    document.getElementById("toss").style.display = 'none';
-    update.style.display = 'flex';
-    update.style.transform = "scale(1) translate(0%)";
-    update.innerText = ""
-    expert.style.display = "none";
-    document.getElementById("mode").style.justifyContent = "center";
-    document.getElementById("mode").innerText = "vs @user";
-
 }
 
 const update = document.getElementById('update');
@@ -98,7 +104,12 @@ export async function startMatch(waitForStart) {
         if (playerType === "invited") {
             if (start) {
                 switchMode();
-                await startPolling();
+                hideOfflineStuff();
+                if (response.roomDetails.currentTurn === "creator") {
+                    await startPolling();
+                } else {
+                    update.innerText = "You go first!!!"
+                }
                 resText.innerText = "Match has been started.";
                 clearInterval(waitForStart);
                 // bring animation of hide response popup
@@ -108,9 +119,16 @@ export async function startMatch(waitForStart) {
         else if (playerType === "creator") {
             if (start) {
                 switchMode();
+                hideOfflineStuff();
                 resText.innerText = "The Match has started.";
                 document.querySelector(".joinCreateResponse").style.display = 'none';
-                await reqServerToSetTurn("creator", 0);
+                let first = Math.floor(Math.random()*100) % 2 == 0 ? "creator" : "invited" ;
+                if(first === "invited") {
+                    await startPolling();
+                } else {
+                    update.innerText = "You go first!!!"
+                }
+                await reqServerToSetTurn(first, 0);
             } else {
                 resText.innerText = "Something went wrong.";
             }
@@ -131,12 +149,10 @@ export function joinRoom(room) {
 export async function reqServerToSetTurn(currentTurn, move = 0) { // Send current move each time.
     if (latestMove !== 0) {
         move = latestMove;
-        console.log("latest move is", latestMove);
     }
     let response = await fetch(`http://127.0.0.1:8000/setturn/${roomID}/${currentTurn}/${move}`); // roomID is globally defined.
     if (response.ok) {
         response = await response.json();
-        console.log(`http://127.0.0.1:8000/setturn/${roomID}/${currentTurn}/${move}`);
         return response;
     } else {
         console.log(`http://127.0.0.1:8000/setturn/${roomID}/${currentTurn}/${move}`);
