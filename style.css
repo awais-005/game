@@ -7,7 +7,10 @@
     background-color: transparent;
 }
 body {
+    position: relative;
+    max-height: calc(100svh - 75px);
     background-color: #93da97;
+    overflow: hidden;
 }
 #nav {
     position: fixed;

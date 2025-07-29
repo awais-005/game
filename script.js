@@ -454,7 +454,10 @@ expert.addEventListener('click', function () {
 
 function offlineRematch() {
     document.querySelector('.gameover').style.transform = "translate(-50%, -50%) scale(0)";
-    setTimeout(() => { document.querySelector('.gameover').style.display = "none" }, 200);
+    setTimeout(() => {
+        document.querySelector('.gameover').style.display = "none";
+        document.getElementById('result').innerText = "Match is Drawn!";
+    }, 200);
     tossWinner = 0; // Reset toss winner
     if (!toggled) {
         showResult.innerText = 'Updates';
@@ -512,7 +515,7 @@ async function rematchPolling() {
 async function onlineRematch() {
     document.getElementById("rematch").style.display = "none";
     let res = await getRoomDetails();
-    if(res.roomDetails.status === "left") {
+    if (res.roomDetails.status === "left") {
         document.getElementById('result').innerText = " Opponent has left!";
         return;
     } else {
